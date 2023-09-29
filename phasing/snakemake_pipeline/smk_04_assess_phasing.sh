@@ -27,8 +27,8 @@ elif [ $mode = "rare" ]; then
     echo "Work for rare variants at $out_prefix"
 
     # get list of the rare variants phased for each cohort
-    bcftools query -f '%CHROM:%POS:%REF:%ALT\t%POS\t%ID\t%AC\t%AN\n' $phased_true > $out_prefix.chr$chr.$tag.tab
-    bcftools query -f '%CHROM:%POS:%REF:%ALT\t%POS\t%ID\t%AC\t%AN\n' $phased_estd > $out_prefix.chr$chr.no$tag.tab
+    bcftools query -f '%CHROM:%POS:%REF:%ALT\t%POS\t%ID\t%AC\t%AN\n' $phased_true > $out_prefix.trios.chr$chr.tab
+    bcftools query -f '%CHROM:%POS:%REF:%ALT\t%POS\t%ID\t%AC\t%AN\n' $phased_estd > $out_prefix.notrios.chr$chr.tab
 
     for PP in 0.50 0.80 0.90; do 
         new_prefix="$out_prefix.assess_rare.pp$PP.chr$chr"
