@@ -3,9 +3,9 @@ Snakefile pipeline for the phasing common and rare variants with SHAPEIT5
 
 The working directory will be the one from where this script will be executed
 The pipeline consists of 4 small steps (conceptually, might be tough computationally)
-    1) phase trios (both common and rare variants)
-    2) phase common for the whole cohort
-    3) phase rare for the whole cohort, in chunks
+    1) phase common for the whole cohort
+    2) phase rare for the whole cohort, in chunks
+    3) phase trios (both common and rare variants)
     4) assess phasing and get files with the PP distribution
 
 #### Required input ####
@@ -15,18 +15,7 @@ The pipeline consists of 4 small steps (conceptually, might be tough computation
 3. Genetic maps and lists of chunks, per chromosome (see the corresponding scripts)
 4. A few parameters for Shapeit5 which are already set
 
-#### Important notes ####
-* File prep is not included here as is tricky; this could be performed with `smk_00_merge_wes_array.sh` [TODO]  
-* Each script contains a few params, such as paths to genetic maps, or chunk lists.
-* Software dependencies: bcftools (+HTSlib), SHAPEIT5, snakemake (+Python); 
-* I'm currently using a combination of binaries and modules for Shapeit5 (to deal with issues 34,56), please choose what's best
-* The SER analysis is performed using the `switch` tool provided by SHAPEIT5 - this might need to change [TODO]
-
-#### How to - LSF ####
-* the following will start the pipeline and submit all jobs with all the jobs required:
-`snakemake --cluster "bsub -M 16G -R 'select[mem>16G] rusage[mem=16G]' -n10 -G team281 -q normal -o run_all.stdout -e run_all.stderr" --jobs 10 --latency-wait 10 -T 2 run_all`
-* first run the following the initialise the required folders:
-`mkdir -p phased_genotypes_common phased_genotypes_rare phasing_assessment sandbox`
+Check the `README.md` for more details.
 
 GK - Sep 26th, 2023
 """
@@ -82,7 +71,7 @@ rule assess_phasing_common:
         var_ser = "{wd}/phasing_assessment/{tag}.assess_common.chr{chrom}.variant.switch.txt.gz"
     run:
         prefix = WORK_DIR + "/phasing_assessment/" + TAG
-        shell("bash smk_04_assess_phasing.sh common {wildcards.chrom} {input.phased_trios} {input.phased_all} {prefix}")
+        shell("bash smk_04_assess_phasing.sh common {wildcards.chrom} {input.phased_trios} {input.phased_all} {TAG}.100trios.pedigree {prefix}")
 
 rule assess_phasing_rare:
     resources:
@@ -95,7 +84,7 @@ rule assess_phasing_rare:
         pp_vals = "{wd}/phasing_assessment/{tag}.summary.chr{chrom}.mac1.gz"
     run:
         prefix = WORK_DIR + "/phasing_assessment/" + TAG
-        shell("bash smk_04_assess_phasing.sh rare {wildcards.chrom} {input.phased_trios} {input.phased_all} {prefix}")
+        shell("bash smk_04_assess_phasing.sh rare {wildcards.chrom} {input.phased_trios} {input.phased_all} {TAG}.100trios.pedigree {prefix}")
         shell("bash smk_04_assess_phasing.sh getpp {wildcards.chrom} {input.phased_all} {prefix}.summary")
 
 
