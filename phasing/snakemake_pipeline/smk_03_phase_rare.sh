@@ -26,8 +26,8 @@ module load common-apps/bcftools/1.16
 
 ### Output prefices ###
 work_dir="./"
-final_out="${work_dir}/phased_genotypes_rare/${tag}.phased_rare.chr${chr}.bcf"
-out_prefix="${work_dir}/phased_genotypes_rare/chunks/${tag}.phased_rare.chr${chr}"
+final_out="${work_dir}/phased_genotypes_rare/${tag}.phased.chr${chr}.bcf"
+out_prefix="${work_dir}/phased_genotypes_rare/chunks/${tag}.phased.chr${chr}"
 
 if [ ! -f ${to_phase}.csi ]; then
     echo "Generating the index for $to_phase..."

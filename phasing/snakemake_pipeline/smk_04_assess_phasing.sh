@@ -18,25 +18,25 @@ threads=5
 
 if [ $mode = "common" ]; then
 
-    echo "Work for common variants at $out_prefix"
+    echo -e "\nWork for common variants at $out_prefix"
     # out_prefix="$out_dir/$tag.assess_common.chr$chr"
     $SHAPEIT_switch --validation $phased_true --estimation $phased_estd \
-    --region chr$chr --pedigree ${work_dir}/GNH_${tag}.pedigree \
+    --region chr$chr --pedigree $pedigree \
     --output $out_prefix.assess_common.chr$chr --thread $threads
     zcat $out_prefix.assess_common.chr$chr.sample.switch.txt.gz | awk 'BEGIN { e=0; t=0; } { e+=$2; t+=$3; } END { print "SER =", e*100/t; }'
 
 elif [ $mode = "rare" ]; then
     
-    echo "Work for rare variants at $out_prefix"
+    echo -e "\nWork for rare variants at $out_prefix"
 
     # get list of the rare variants phased for each cohort
-    bcftools query -f '%CHROM:%POS:%REF:%ALT\t%POS\t%ID\t%AC\t%AN\n' $phased_true > $out_prefix.trios.chr$chr.tab
-    bcftools query -f '%CHROM:%POS:%REF:%ALT\t%POS\t%ID\t%AC\t%AN\n' $phased_estd > $out_prefix.notrios.chr$chr.tab
+    bcftools query -f '%CHROM:%POS:%REF:%ALT\t%POS\t%ID\t%AC\t%AN\n' $phased_true > $out_prefix.trios.chr$chr.snpinfo
+    bcftools query -f '%CHROM:%POS:%REF:%ALT\t%POS\t%ID\t%AC\t%AN\n' $phased_estd > $out_prefix.notrios.chr$chr.snpinfo
 
     for PP in 0.50 0.80 0.90; do 
         new_prefix="$out_prefix.assess_rare.pp$PP.chr$chr"
         $SHAPEIT_switch --validation $phased_true --estimation $phased_estd --min-pp $PP \
-        --singleton \
+        --singleton --pedigree $pedigree \
         --region chr$chr --output $new_prefix --thread $threads --log $new_prefix.log
     done
 

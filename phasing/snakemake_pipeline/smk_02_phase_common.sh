@@ -15,7 +15,7 @@ module load common-apps/bcftools/1.16
 SHAPEIT_phase_common='/software/team281/bin/shapeit5/phase_common_static'
 threads=10
 gmap="FIXTHIS/genetic_maps/chr${chr}.b38.gmap.gz"
-out_prefix="phased_genotypes_common/$tag.phased_common.chr${chr}"
+out_prefix="phased_genotypes_common/$tag.phased.chr${chr}"
 phased="${out_prefix}.bcf"
 
 pbwt_modulo=0.1 # deault is 0.1, in shapeit4 with sequencing it is 0.0002
