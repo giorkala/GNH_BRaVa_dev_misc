@@ -8,16 +8,17 @@
 chr=$1 # number of chrom to process
 to_phase=$2 # the *preprocessed* BCF to phase
 tag=$3 # a file identifier
+gmap=$4 # a global variable
 
-### hyper-parameters ###
+out_prefix="./phased_genotypes_common/$tag.phased.chr${chr}"
+phased="${out_prefix}.bcf"
+
 module load common-apps/bcftools/1.16
 # module load HGI/common/shapeit/contig
 SHAPEIT_phase_common='/software/team281/bin/shapeit5/phase_common_static'
 threads=10
-gmap="FIXTHIS/genetic_maps/chr${chr}.b38.gmap.gz"
-out_prefix="phased_genotypes_common/$tag.phased.chr${chr}"
-phased="${out_prefix}.bcf"
 
+### hyper-parameters ###
 pbwt_modulo=0.1 # deault is 0.1, in shapeit4 with sequencing it is 0.0002
 pbwt_depth=4 # deault is 4
 pbwt_mac=5 # deafult is 5

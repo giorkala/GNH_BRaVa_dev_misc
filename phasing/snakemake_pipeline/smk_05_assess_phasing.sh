@@ -14,6 +14,7 @@ out_prefix=$6
 
 # module load HGI/common/shapeit/contig
 SHAPEIT_switch='/software/team281/bin/shapeit5/switch_static'
+module load common-apps/bcftools/1.16
 threads=5
 
 if [ $mode = "common" ]; then
@@ -46,17 +47,17 @@ elif [ $mode = "getpp" ]; then
 
     BCF=$3
     out_prefix=$4
-    echo "Extracting PP summaries for $BCF"
+    echo "Extracting PP summaries for $BCF (multiple tasks)"
 
-    # MAC==1
-    bcftools view $BCF -C 1 -Ou | bcftools query -i'GT="het"' -f'[%CHROM:%POS:%REF:%ALT %GT %PP \n]' | gzip > $out_prefix.chr$chr.mac1.gz
-    # MAC==2
-    bcftools view $BCF -c 2 -C 2 -Ou | bcftools query -i'GT="het"' -f'[%CHROM:%POS:%REF:%ALT %GT %PP \n]' | gzip > $out_prefix.chr$chr.mac2.gz
-    # MAC==3:
-    bcftools view $BCF -c 3 -C 3 -Ou | bcftools query -i'GT="het"' -f'[%CHROM:%POS:%REF:%ALT %GT %PP \n]' | gzip > $out_prefix.chr$chr.mac3.gz
     # MAF<0.001 + epsilon
     # bcftools view $BCF -C 85 -Ou | bcftools query -i'GT="het"' -f'[%CHROM:%POS:%REF:%ALT %GT %PP \n]' | gzip > $out_prefix.chr$chr.maf0001.gz
-    bcftools view $BCF --max-af 0.0015 -Ou | bcftools query -i'GT="het"' -f'[%CHROM:%POS:%REF:%ALT %GT %PP \n]' | awk '($3>0.49)' | gzip > $out_prefix.chr$chr.maf00015.gz
+    bcftools view $BCF --max-af 0.0015 -Ou | bcftools query -i'GT="het"' -f'[%CHROM:%POS:%REF:%ALT %GT %PP \n]' | awk '($3>0.49)' | gzip > $out_prefix.chr$chr.maf00015.gz &
+    # MAC==1
+    bcftools view $BCF -C 1 -Ou | bcftools query -i'GT="het"' -f'[%CHROM:%POS:%REF:%ALT %GT %PP \n]' | gzip > $out_prefix.chr$chr.mac1.gz &
+    # MAC==2
+    bcftools view $BCF -c 2 -C 2 -Ou | bcftools query -i'GT="het"' -f'[%CHROM:%POS:%REF:%ALT %GT %PP \n]' | gzip > $out_prefix.chr$chr.mac2.gz &
+    # MAC==3:
+    bcftools view $BCF -c 3 -C 3 -Ou | bcftools query -i'GT="het"' -f'[%CHROM:%POS:%REF:%ALT %GT %PP \n]' | gzip > $out_prefix.chr$chr.mac3.gz
 
 else
     echo "Error: unrecognised argument: mode needs to be one of `common`,`rare`,`getpp`."

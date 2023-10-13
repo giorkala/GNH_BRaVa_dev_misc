@@ -15,10 +15,10 @@ chr=$1 # number of chrom to process
 phased_scaffold=$2 # the BCF of phased common variants
 to_phase=$3 # the *preprocessed* BCF to phase
 tag=$4 # just an identifier
+genet_map=$5 # a global variable
+chunk_list=$6 # a global variable
 
 ### hyper-parameters ###
-gmap="FIXTHIS/genetic_maps/chr${chr}.b38.gmap.gz"
-chunk_list="FIXTHIS/chunks_b38_4cM/chunks_chr$chr.txt"
 threads=5
 # we need to both deal with "invalid CONTIG" issues and obtain PPs for singletons. this is enabled by 'shapeit/contig'
 module load HGI/common/shapeit/contig
@@ -26,8 +26,8 @@ module load common-apps/bcftools/1.16
 
 ### Output prefices ###
 work_dir="./"
-final_out="${work_dir}/phased_genotypes_rare/${tag}.phased.chr${chr}.bcf"
-out_prefix="${work_dir}/phased_genotypes_rare/chunks/${tag}.phased.chr${chr}"
+final_out="${work_dir}/phased_genotypes_rare/${tag}.phased_all.chr${chr}.bcf"
+out_prefix="${work_dir}/phased_genotypes_rare/chunks/${tag}.phased_all.chr${chr}"
 
 if [ ! -f ${to_phase}.csi ]; then
     echo "Generating the index for $to_phase..."
@@ -53,6 +53,7 @@ cat $chunk_list | while read LINE; do
 
     phased_chunk=$out_prefix.chunk$CHK.bcf
     echo "Proceeding with chunk $CHK."
+    echo $phased_chunk >> $work_dir/sandbox/files.$chr
 
     if [ ! -f ${phased_chunk} ]; then
         phase_rare \
@@ -78,8 +79,11 @@ echo "Done with phasing, duration: ${SECONDS}."
 
 # second, concatenate the phased chunks
 if [ -f ${phased_chunk} ]; then
-    ls -1v $out_prefix.chunk*.bcf > $work_dir/sandbox/files.chr$chr
-    bcftools concat -n -Ob -o $final_out -f $work_dir/sandbox/files.chr$chr
+    # we can either use bcftools concat-ligate (which has an issue), or ligate by SHAPEIT5
+    # ls -1v $out_prefix.chunk*.bcf > $work_dir/sandbox/files.chr$chr
+    # bcftools concat -n -Ob -o $final_out -f $work_dir/sandbox/files.chr$chr
+    ligate_static --input $work_dir/sandbox/files.$chr --output $final_out --thread 2
+
     bcftools index $final_out
     rm $work_dir/sandbox/files.chr$chr
 fi
