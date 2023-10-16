@@ -29,6 +29,7 @@ chunk_list_prefix="/FIXTHIS/chunks_b38_4cM/chunks_"
 
 WORK_DIR="/FIXTHIS/WORK_DIR"
 TAG="GNH_39k"
+PEDIGREE=WORK_DIR+"/GNH_39k.100trios.pedigree"
 
 rule prepare_bcfs:
     resources:
@@ -53,8 +54,7 @@ rule phase_common:
         phased_bcf = "{wd}/phased_genotypes_common/{tag}.notrios.phased.chr{chrom}.bcf"
     shell:
         """
-        export genet_map={input.genet_map}
-        bash smk_02_phase_common.sh {wildcards.chrom} {input.input_bcf} {TAG}.notrios
+        bash smk_02_phase_common.sh {wildcards.chrom} {input.input_bcf} {TAG}.notrios {input.genet_map}
         """
 
 rule phase_rare:
@@ -86,7 +86,7 @@ rule phase_trios:
     shell:
         """
         bash smk_04_phase_trios.sh {wildcards.chrom} {TAG} {WORK_DIR} {input.raw_wes} {input_bed_prefix}
-        bash smk_02_phase_common.sh {wildcards.chrom} {output.trios_prep} {TAG}.trios {input.genet_map}
+        bash smk_02_phase_common.sh {wildcards.chrom} {output.trios_prep} {TAG}.trios {input.genet_map} {PEDIGREE}
         """
 
 rule assess_phasing:
@@ -101,8 +101,8 @@ rule assess_phasing:
         ser_rare = "{wd}/phasing_assessment/{tag}.assess_rare.pp0.50.chr{chrom}.variant.switch.txt.gz"
     run:
         prefix = WORK_DIR + "/phasing_assessment/" + TAG
-        shell("bash smk_05_assess_phasing.sh common {wildcards.chrom} {input.phased_trios} {input.phased_common} {TAG}.100trios.pedigree {prefix}")
-        shell("bash smk_05_assess_phasing.sh rare {wildcards.chrom} {input.phased_trios} {input.phased_rare} {TAG}.100trios.pedigree {prefix}")
+        shell("bash smk_05_assess_phasing.sh common {wildcards.chrom} {input.phased_trios} {input.phased_common} {PEDIGREE} {prefix}")
+        shell("bash smk_05_assess_phasing.sh rare {wildcards.chrom} {input.phased_trios} {input.phased_rare} {PEDIGREE} {prefix}")
 
 rule get_pp_distribution:
     resources:
@@ -119,8 +119,9 @@ rule get_pp_distribution:
 
 rule run_all:
     input:
-        expand(WORK_DIR+"/phased_genotypes_common/{tag}.trios.phased.chr{chrom}.bcf", chrom=range(1,3), tag={TAG}),
-        # expand(WORK_DIR+"/phased_genotypes_rare/{tag}.notrios.phased_all.chr{chrom}.bcf", chrom=range(21,23), tag={TAG}),    
-        # expand(WORK_DIR+"/phasing_assessment/{tag}.assess_rare.pp0.50.chr{chrom}.variant.switch.txt.gz", chrom=range(2,3), wd={WORK_DIR}, tag={TAG}),
+        expand(WORK_DIR+"/phased_genotypes_common/{tag}.trios.phased.chr{chrom}.bcf", chrom=range(1,23), tag={TAG}),
+        expand(WORK_DIR+"/phased_genotypes_rare/{tag}.notrios.phased_all.chr{chrom}.bcf", chrom=range(1,23), tag={TAG}),   
+        # expand(WORK_DIR+"/phased_genotypes_rare/{tag}.notrios.phased_all.chr{chrom}.bcf", chrom=range(21,22), tag={TAG}),     
+        expand(WORK_DIR+"/phasing_assessment/{tag}.assess_rare.pp0.50.chr{chrom}.variant.switch.txt.gz", chrom=range(1,23), wd={WORK_DIR}, tag={TAG}),
         # expand(WORK_DIR+"/phasing_assessment/{tag}.assess_common.chr{chrom}.variant.switch.txt.gz", chrom=range(21,22), tag={TAG}),
-        # expand(WORK_DIR+"/phasing_assessment/{tag}.pp.chr{chrom}.mac3.gz", chrom=range(20,23), tag={TAG}),
+        expand(WORK_DIR+"/phasing_assessment/{tag}.pp.chr{chrom}.mac3.gz", chrom=range(1,23), tag={TAG}),

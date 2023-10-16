@@ -15,7 +15,7 @@ chr=$1 # number of chrom to process
 phased_scaffold=$2 # the BCF of phased common variants
 to_phase=$3 # the *preprocessed* BCF to phase
 tag=$4 # just an identifier
-genet_map=$5 # a global variable
+gmap=$5 # a global variable
 chunk_list=$6 # a global variable
 
 ### hyper-parameters ###
@@ -25,7 +25,7 @@ module load HGI/common/shapeit/contig
 module load common-apps/bcftools/1.16 
 
 ### Output prefices ###
-work_dir="./"
+work_dir="."
 final_out="${work_dir}/phased_genotypes_rare/${tag}.phased_all.chr${chr}.bcf"
 out_prefix="${work_dir}/phased_genotypes_rare/chunks/${tag}.phased_all.chr${chr}"
 
@@ -45,7 +45,7 @@ pbwt_mdr=0.1
 pop_effective_size=15000
 
 SECONDS=0
-
+rm $work_dir/sandbox/files.$chr
 cat $chunk_list | while read LINE; do
 	CHK=$(echo $LINE | awk '{ print $1; }')
 	SRG=$(echo $LINE | awk '{ print $3; }')
@@ -82,8 +82,7 @@ if [ -f ${phased_chunk} ]; then
     # we can either use bcftools concat-ligate (which has an issue), or ligate by SHAPEIT5
     # ls -1v $out_prefix.chunk*.bcf > $work_dir/sandbox/files.chr$chr
     # bcftools concat -n -Ob -o $final_out -f $work_dir/sandbox/files.chr$chr
-    ligate_static --input $work_dir/sandbox/files.$chr --output $final_out --thread 2
-
+    ligate --input $work_dir/sandbox/files.$chr --output $final_out --thread 2
     bcftools index $final_out
-    rm $work_dir/sandbox/files.chr$chr
+    rm $work_dir/sandbox/files.$chr
 fi

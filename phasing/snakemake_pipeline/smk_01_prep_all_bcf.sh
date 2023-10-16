@@ -44,8 +44,8 @@ SECONDS=0
 
 if [ ! -f $wes_new_prefix.vcf.gz ]; then
     echo -e "\nCalling BCFtools to prepare the WES input.\n"
-    bcftools reheader --samples $update_ids_wes | bcftools \
-        view $input_wes -S $samples_final0 -Ou | bcftools \
+    bcftools view $input_wes -S $samples_final0 -Ou | bcftools \
+        reheader --samples $update_ids_wes | bcftools \
         filter --exclude 'MAF<0.001' -Oz -o $wes_new_prefix.vcf.gz
     bcftools index $wes_new_prefix.vcf.gz
 else
@@ -106,11 +106,6 @@ SECONDS=0
 bcftools reheader $input_wes --samples $work_dir/sample_lists/samples.update_ids_wes.txt | bcftools \
     view --max-af 0.001 -S $samples_final1 -Ob -o $out_bcf_full_rare
 bcftools index $out_bcf_full_rare
-
-# # we had to change a few sample IDs in which case we'd need 
-# # bcftools reheader $input_rare --samples $work_dir/samples.update_ids_wes.txt | bcftools view -S $work_dir/$tag.samples -Ou | bcftools filter --exclude 'MAF>0.001' -Ob -o $out_bcf_rare_full
-# bcftools view $input_rare -S $work_dir/$tag.WES_final.samples -Ou | bcftools filter --exclude 'MAF>0.001' -Ob -o $out_bcf_rare_full
-# bcftools index $out_bcf_rare_full
 echo "Done with preprocessing rare, duration: ${SECONDS}."
 
 echo "All done!"

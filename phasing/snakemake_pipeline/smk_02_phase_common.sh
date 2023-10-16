@@ -8,7 +8,8 @@
 chr=$1 # number of chrom to process
 to_phase=$2 # the *preprocessed* BCF to phase
 tag=$3 # a file identifier
-gmap=$4 # a global variable
+gmap=$4 # the genetic map
+pedigree=$5 # if given, the pedigree for phasing trios
 
 out_prefix="./phased_genotypes_common/$tag.phased.chr${chr}"
 phased="${out_prefix}.bcf"
@@ -32,7 +33,7 @@ fi
 
 SECONDS=0
 
-if [[ -z $4 ]]; then
+if [[ -z $5 ]]; then
     echo -e "\nPhasing without trio information.\n"
     ${SHAPEIT_phase_common} \
       --input ${to_phase} \
@@ -50,7 +51,7 @@ if [[ -z $4 ]]; then
       || echo "ERROR: Phasing variants failed for chr${chr}, duration: ${SECONDS}"
 
 else
-    echo -e "\nPhasing using the pedigree in $4.\n"
+    echo -e "\nPhasing using the pedigree in $pedigree.\n"
     ${SHAPEIT_phase_common} \
       --input ${to_phase} \
       --map ${gmap} \
@@ -63,7 +64,7 @@ else
       --pbwt-mac ${pbwt_mac} \
       --pbwt-mdr ${pbwt_mdr} \
       --filter-maf ${min_maf} \
-      --pedigree $4 \
+      --pedigree $pedigree \
       && echo "Finished phasing variants for chr${chr}, out: ${phased}, duration: ${SECONDS}" \
       || echo "ERROR: Phasing variants failed for chr${chr}, duration: ${SECONDS}"
 fi

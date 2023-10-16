@@ -5,6 +5,7 @@
 # input: raw_vcf, array genotypes, list of trios
 # + samples.update_ids_{gsa,wes}.txt (a file to change sample IDs, optional)
 # + samples.WES_in_GSA.fam (an index of WES samples who are also genotyped, optional)
+# Note: for phasing, use smk_02_phase_common.sh with the appropriate input
 
 module load common-apps/bcftools/1.16
 plink=/software/team281/bin/plink
@@ -80,6 +81,7 @@ bcftools concat -a -Oz -o $final_out.nosnpID $gsa_new_prefix.sorted.vcf.gz $wes_
 # finally, update the SNP IDs to a uniform index
 bcftools annotate --set-id '%CHROM\:%POS\:%REF\:%ALT' $final_out.nosnpID -Ob -o $final_out
 bcftools index -f $final_out
-echo "Done with preparation, duration: ${SECONDS}."
 
+echo "Done with preparation, duration: ${SECONDS}. Cleaning files..."
+rm $gsa_new_prefix* $final_out.nosnpID
 echo "All done!"
