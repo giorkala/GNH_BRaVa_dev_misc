@@ -15,8 +15,8 @@ chr=$1 # number of chrom to process
 phased_scaffold=$2 # the BCF of phased common variants
 to_phase=$3 # the *preprocessed* BCF to phase
 tag=$4 # just an identifier
-gmap=$5 # a global variable
-chunk_list=$6 # a global variable
+gmap=$5 # the genetic map
+chunk_list=$6 # a file with a list of chunks
 
 ### hyper-parameters ###
 threads=5
