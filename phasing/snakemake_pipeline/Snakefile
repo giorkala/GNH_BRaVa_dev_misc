@@ -18,7 +18,7 @@ The pipeline consists of 4 small steps (small conceptually, might be tough compu
 Check the `README.md` for more details.
 
 # for LSF:
-`snakemake --cluster "bsub -M 16G -R 'select[mem>16G] rusage[mem=16G]' -n10 -G team281 -q normal -o run_all.stdout -e run_all.stderr" --jobs 10 --latency-wait 10 -T 2 run_all`
+`snakemake --cluster "bsub -M 16G -R 'select[mem>16G] rusage[mem=16G]' -n10 -G team281 -q normal -o run_all.stdout -e run_all.stderr" --jobs 22 --latency-wait 10 -T 2 run_all`
 
 GK - Sep 26th, 2023
 """

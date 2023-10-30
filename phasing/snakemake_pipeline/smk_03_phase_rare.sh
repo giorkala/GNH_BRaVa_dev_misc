@@ -68,6 +68,7 @@ cat $chunk_list | while read LINE; do
             --pbwt-mdr $pbwt_mdr \
             --effective-size $pop_effective_size \
             --output $phased_chunk \
+            --log $out_prefix.log \
             --thread $threads
             # --phased-set-error $phased_set_error 
     else
