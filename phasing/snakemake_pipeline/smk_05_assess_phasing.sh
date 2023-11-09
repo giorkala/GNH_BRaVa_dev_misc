@@ -50,8 +50,8 @@ elif [ $mode = "getpp" ]; then
     echo "Extracting PP summaries for $BCF (multiple tasks)"
 
     # MAF<0.001 + epsilon
-    # bcftools view $BCF -C 85 -Ou | bcftools query -i'GT="het"' -f'[%CHROM:%POS:%REF:%ALT %GT %PP \n]' | gzip > $out_prefix.chr$chr.maf0001.gz
-    bcftools view $BCF --max-af 0.0015 -Ou | bcftools query -i'GT="het"' -f'[%CHROM:%POS:%REF:%ALT %GT %PP \n]' | awk '($3>0.49)' | gzip > $out_prefix.chr$chr.maf00015.gz &
+    bcftools view $BCF --max-af 0.0015 -Ou | bcftools query -i'GT="het"' -f'[%CHROM:%POS:%REF:%ALT %GT %PP \n]' | awk '($3>=0.50)' | gzip > $out_prefix.chr$chr.maf00015.pp0.50.gz &
+    bcftools view $BCF --max-af 0.0015 -Ou | bcftools query -i'GT="het"' -f'[%CHROM:%POS:%REF:%ALT %GT %PP \n]' | awk '($3>=0.90)' | gzip > $out_prefix.chr$chr.maf00015.pp0.90.gz &
     # MAC==1
     bcftools view $BCF -C 1 -Ou | bcftools query -i'GT="het"' -f'[%CHROM:%POS:%REF:%ALT %GT %PP \n]' | gzip > $out_prefix.chr$chr.mac1.gz &
     # MAC==2

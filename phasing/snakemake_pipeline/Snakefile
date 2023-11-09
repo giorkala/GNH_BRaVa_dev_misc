@@ -112,8 +112,8 @@ rule get_pp_distribution:
     input:
         phased_rare  = rules.phase_rare.output.phased_bcf
     output:
-        pp_mac3 = "{wd}/phasing_assessment/{tag}.pp.chr{chrom}.mac3.gz",
-        pp_mac0 = "{wd}/phasing_assessment/{tag}.pp.chr{chrom}.maf00015.gz"
+        pp_mac0_pp90 = "{wd}/phasing_assessment/{tag}.pp.chr{chrom}.maf00015.pp0.90.gz",
+        pp_mac0_pp50 = "{wd}/phasing_assessment/{tag}.pp.chr{chrom}.maf00015.pp0.50.gz"
     run:
         prefix = WORK_DIR + "/phasing_assessment/" + TAG
         shell("bash smk_05_assess_phasing.sh getpp {wildcards.chrom} {input.phased_rare} {prefix}.pp")
@@ -123,7 +123,6 @@ rule run_all:
     input:
         expand(WORK_DIR+"/phased_genotypes_common/{tag}.trios.phased.chr{chrom}.bcf", chrom=range(1,23), tag={TAG}),
         expand(WORK_DIR+"/phased_genotypes_rare/{tag}.notrios.phased_all.chr{chrom}.bcf", chrom=range(1,23), tag={TAG}),   
-        # expand(WORK_DIR+"/phased_genotypes_rare/{tag}.notrios.phased_all.chr{chrom}.bcf", chrom=range(21,22), tag={TAG}),     
         expand(WORK_DIR+"/phasing_assessment/{tag}.assess_rare.pp0.50.chr{chrom}.variant.switch.txt.gz", chrom=range(1,23), wd={WORK_DIR}, tag={TAG}),
         # expand(WORK_DIR+"/phasing_assessment/{tag}.assess_common.chr{chrom}.variant.switch.txt.gz", chrom=range(21,22), tag={TAG}),
-        expand(WORK_DIR+"/phasing_assessment/{tag}.pp.chr{chrom}.mac3.gz", chrom=range(1,23), tag={TAG}),
+        expand(WORK_DIR+"/phasing_assessment/{tag}.pp.chr{chrom}.maf00015.pp0.90.gz", chrom=range(1,23), tag={TAG}),
