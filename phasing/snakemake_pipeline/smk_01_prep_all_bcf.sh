@@ -41,12 +41,13 @@ out_bcf_full_rare="${work_dir}/sandbox/${tag}.notrios.rare_prepared.chr${chr}.bc
 SECONDS=0
 
 ### A. Extract common genotypes from raw WES ###
-
+# skip rare variants (MAF<0.001), those that are ExcessHet, or those being long indels
 if [ ! -f $wes_new_prefix.vcf.gz ]; then
     echo -e "\nCalling BCFtools to prepare the WES input.\n"
-    bcftools view $input_wes -S $samples_final0 -Ou | bcftools \
+    bcftools \
+        view $input_wes -S $samples_final0 -Ou | bcftools \
         reheader --samples $update_ids_wes | bcftools \
-        filter --exclude 'MAF<0.001' -Oz -o $wes_new_prefix.vcf.gz
+        filter --include 'MAF>0.001 & FILTER!="ExcessHet" & MAX(STRLEN(ALT))<25 & MAX(STRLEN(REF))<25' -Oz -o $wes_new_prefix.vcf.gz
     bcftools index $wes_new_prefix.vcf.gz
 else
     echo -e "\nWES input already exists - moving on.\n"
@@ -102,9 +103,11 @@ echo "Done with preparation of common, duration: ${SECONDS}."
 echo -e "\n################\n"
 echo "Preparing a new BCF for rare variants..."
 SECONDS=0
-# here we have to first change some sample IDs, then select samples, then exclude variants of higher freq
-bcftools reheader $input_wes --samples $work_dir/sample_lists/samples.update_ids_wes.txt | bcftools \
-    view --max-af 0.001 -S $samples_final1 -Ob -o $out_bcf_full_rare
+# here we have to first change a few sample IDs, then select samples, then QC variants
+bcftools \
+    reheader $input_wes --samples $work_dir/sample_lists/samples.update_ids_wes.txt | bcftools \
+    view -i 'MAF<0.001 & MAX(STRLEN(ALT))<25 & MAX(STRLEN(REF))<25 & FILTER!="ExcessHet"' -S $work_dir/samples.GNH_39k_QC.final | bcftools \
+    annotate --set-id '%CHROM\:%POS\:%REF\:%ALT' -Ob -o $out_bcf_full_rare
 bcftools index $out_bcf_full_rare
 echo "Done with preprocessing rare, duration: ${SECONDS}."
 

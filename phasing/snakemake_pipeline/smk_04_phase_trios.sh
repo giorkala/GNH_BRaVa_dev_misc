@@ -40,7 +40,7 @@ if [ ! -f $wes_new_prefix.vcf.gz ]; then
     echo -e "\nCalling BCFtools to prepare the WES input.\n"
     bcftools view $input_wes -S $samples_trios -Ou | bcftools \
     reheader --samples $work_dir/sample_lists/samples.update_ids_wes.txt | bcftools \
-    filter --exclude 'MAF==0.0' -Ob -o $wes_new_prefix.vcf.gz
+    filter --exclude 'MAF==0.0 | MAX(STRLEN(ALT))>25 | MAX(STRLEN(REF))>25 | FILTER=="ExcessHet"' -Oz -o $wes_new_prefix.vcf.gz
 else
     echo -e "\nWES input already exists - moving on.\n"
 fi

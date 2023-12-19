@@ -45,7 +45,7 @@ pbwt_mdr=0.1
 pop_effective_size=15000
 
 SECONDS=0
-rm $work_dir/sandbox/files.$chr
+rm -f $work_dir/sandbox/files.$chr
 cat $chunk_list | while read LINE; do
 	CHK=$(echo $LINE | awk '{ print $1; }')
 	SRG=$(echo $LINE | awk '{ print $3; }')
