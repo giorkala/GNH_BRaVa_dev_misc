@@ -1,12 +1,12 @@
 """
-Snakefile pipeline for preparing genotypes to enable Recessive SKAT analysis in Regenie
+Snakemake pipeline for preparing genotypes to enable Recessive SKAT analysis in Regenie
 
 The pipeline consists of 4 small steps, the second one being the longest one:
     1) Use `call_chets` to generate a list of biallelic individuals, once per chromosome
     2) given that list, assess which genes have enough carriers based on `min_AC`
     3) generate one VCF per gene with the prep genotypes for those genes
     4) merge all these VCFs into a single one, per chromosome, and do some retouching
-Finally, concatenate all these VCFs into an exome-wide one and generate a BGEN for Regenie; this needs to be done separately.
+    5) Finally, concatenate all these VCFs into an exome-wide one and generate a BGEN for Regenie; this needs to be done separately.
 
 #### Required input ####
 1. BCF files with phased genotypes
@@ -16,7 +16,7 @@ Finally, concatenate all these VCFs into an exome-wide one and generate a BGEN f
 Check the `README.md` for more details.
 
 # for LSF:
-`snakemake --cluster "bsub -M 4G -R 'select[mem>4G] rusage[mem=4G]' -n2 -G team281 -q normal -o run_all.stdout -e run_all.stderr" --jobs 50 --latency-wait 10 -T 2 run_all`
+`snakemake --cluster "bsub -M 4G -R 'select[mem>4G] rusage[mem=4G]' -n2 -G team281 -q normal -o run_all.stdout -e logs/run_all.stderr.%J" --jobs 50 --latency-wait 10 -T 2 run_all`
 
 GK - Jul 25, 2024
 """
@@ -27,11 +27,13 @@ max_AF=0.05 # maximum allele frequency per variant
 TAG="brava_s50.nonsynonymous" # tag to identify the output files
 
 ## General file paths and prefices ##
-WORK_DIR="FIX/THIS/PATH"
+WORK_DIR="/FIX/THIS/PATH"
 bcf_prefix=WORK_DIR+"/phased_genotypes/GNH_39k_QC.notrios.phased_all"
 annot_prefix=WORK_DIR+"/rec_skat_prep/annotation.brava_s50.nonsynonymous.chrALL.txt"
 gene_vcf_prefix=f"{WORK_DIR}/rec_skat_prep/vcf_files_temp/{TAG}"
 # genes_list_file = WORK_DIR+"/rec_skat_prep/genes.brava_s50.chrALL"
+
+# import glob # TODO: remove this?
 
 # Function to read genes list from a file
 def read_genes_list(chroms):
@@ -42,7 +44,6 @@ def read_genes_list(chroms):
                 chrom, gene = line.strip().split()
                 tuples.append((chrom, gene))
     return tuples[:]
-
 gene_tuples = read_genes_list(range(1,23))
 
 rule run_all:
@@ -57,9 +58,8 @@ rule run_all:
                gene=[gene for chrom, gene in gene_tuples],
                prefix=[gene_vcf_prefix] * len(gene_tuples)),
         # expand("{prefix}.{chrom}.{gene}.vcf", chrom=f'chr{18}', gene =[x[1] for x in read_genes_list([18])], prefix=gene_vcf_prefix),
-        expand("{prefix}.chr{chrom}.vcf", chrom=range(20,23), prefix=gene_vcf_prefix),
-    # default_target: True
-        # expand(output_for_gene(gene), chrom=chromosomes.keys(), gene=[gene for genes in chromosomes.values() for gene in genes])
+        expand("{prefix}.chr{chrom}.vcf", chrom=range(1,23), prefix=gene_vcf_prefix),
+        expand(WORK_DIR+"/rec_skat_prep/{tag}.chrALL.bcf", tag={TAG}),
 
 rule generate_biallelic_carriers:
     resources:
@@ -81,11 +81,12 @@ rule generate_biallelic_carriers:
         bash smk_01_get_biallelic.sh {input.input_bcf} {input.annot} {params.max_AF} {params.wd} {params.tag}.chr{wildcards.chrom} {output}
         """
 
-rule identify_good_genes:
+checkpoint identify_good_genes:
     input:
         rules.generate_biallelic_carriers.output
     output:
-        WORK_DIR+"/rec_skat_prep/genes_to_process."+TAG+".chr{chrom}"
+        WORK_DIR+"/rec_skat_prep/genes_to_process."+TAG+".chr{chrom}",
+        # gene_files = glob.glob(WORK_DIR+"/sandbox/samples.{chrom}.*.biallelic")
     params:
         wd = WORK_DIR,
         min_AC = min_AC,
@@ -101,7 +102,8 @@ rule identify_good_genes:
 rule generate_gene_vcf:
     input:
         bcf = bcf_prefix + ".chr{chrom}.bcf",
-        annot = annot_prefix
+        annot = annot_prefix,
+        # good_genes = checkpoints.identify_good_genes.get(chrom={chrom}).gene_files
     output:
         gene_vcf_prefix+".chr{chrom}.{gene}.vcf"
     params:
@@ -112,6 +114,7 @@ rule generate_gene_vcf:
     shell:
         """
         source /etc/profile.d/modules.sh
+        module load HGI/softpack/users/bh18/bcftools/1.0
         bash smk_03_generate_gene_vcf.sh {input.bcf} {input.annot} {params.gene} {params.chrom} {output} {params.wd}
         """
 
@@ -119,6 +122,8 @@ rule concatenate_chrom_vcf:
     # note: although not stated explicitly, this rule depends on the output of rule.generate_gene_vcf, as its those
     # files that will be concatenated. Make sure that rule is complete before running this one.
     input:
+        # checkpoints.identify_good_genes.get(chrom={wildcards.chrom}).gene_files,
+        # rules.generate_gene_vcf.output
         rules.identify_good_genes.output,
     output:
         gene_vcf_prefix+".chr{chrom}.vcf"
@@ -137,9 +142,7 @@ rule generate_annotation_regenie_like:
         mem_mb=1000,
         threads=1
     params:
-        annot_prefix = "/lustre/scratch123/hgi/mdt2/projects/gnh_industry/Genes_and_Health_2023_02_44k/brava_vep_annotation/vep105_loftee/out/gnh_39k.brava_s50_nopopmax",
-    # input:
-    #     saige_annot =   
+        annot_prefix = "/lustre/scratch123/hgi/mdt2/projects/gnh_industry/Genes_and_Health_2023_02_44k/brava_vep_annotation/vep105_loftee/out/gnh_39k.brava_s50_nopopmax",  
     output:
         annot = annot_prefix
     shell:
@@ -147,4 +150,22 @@ rule generate_annotation_regenie_like:
         python smk_00_get_regenie_annotation.py -a {params.annot_prefix} \
             --consq damaging_missense_or_protein_altering other_missense_or_protein_altering pLoF \
             --out {output}
+        """
+
+rule final_merging:
+    resources:
+        mem_mb=4000,
+        threads=3
+    input:
+        expand(gene_vcf_prefix+".chr{chrom}.vcf", chrom=range(1,23)),
+    output:
+        WORK_DIR+"/rec_skat_prep/"+TAG+".chrALL.bcf",
+    params:
+        prefix = gene_vcf_prefix,
+        final_prefix = WORK_DIR+"/rec_skat_prep/"+TAG+".chrALL"
+    shell:
+        """
+        source /etc/profile.d/modules.sh
+        module load HGI/softpack/users/bh18/bcftools/1.0
+        bash smk_05_final_merging.sh {params.final_prefix} {params.prefix}
         """
