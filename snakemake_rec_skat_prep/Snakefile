@@ -12,26 +12,26 @@ The pipeline consists of 4 small steps, the second one being the longest one:
 1. BCF files with phased genotypes
 2. annotation (Regenie-ready, one line per variant)
 3. variant consequences to work with (e.g. pLOF + damaging_missense + other_missense)
-3. Parameters: MIN_AC, max_AF, WORK_DIR
+4. Parameters: MIN_AC, max_AF, WORK_DIR
+5. a `samples.bcf.txt` file with the list of samples in the BCF files
 Check the `README.md` for more details.
 
 # for LSF:
-`snakemake --cluster "bsub -M 4G -R 'select[mem>4G] rusage[mem=4G]' -n2 -G team281 -q normal -o run_all.stdout -e logs/run_all.stderr.%J" --jobs 50 --latency-wait 10 -T 2 run_all`
+`snakemake --cluster "bsub -M 4G -R 'select[mem>4G] rusage[mem=4G]' -n2 -G FIXTHIS -q normal -o run_all.stdout -e logs/run_all.stderr.%J" --jobs 50 --latency-wait 10 -T 2 run_all`
 
 GK - Jul 25, 2024
 """
 
 ## parameters ##
-min_AC=4 # minimum number of carriers per gene
+min_AC=5 # minimum number of carriers per gene
 max_AF=0.05 # maximum allele frequency per variant
 TAG="brava_s50.nonsynonymous" # tag to identify the output files
 
 ## General file paths and prefices ##
-WORK_DIR="/FIX/THIS/PATH"
-bcf_prefix=WORK_DIR+"/phased_genotypes/GNH_39k_QC.notrios.phased_all"
-annot_prefix=WORK_DIR+"/rec_skat_prep/annotation.brava_s50.nonsynonymous.chrALL.txt"
-gene_vcf_prefix=f"{WORK_DIR}/rec_skat_prep/vcf_files_temp/{TAG}"
-# genes_list_file = WORK_DIR+"/rec_skat_prep/genes.brava_s50.chrALL"
+WORK_DIR="/FIXTHIS/PATH"
+bcf_prefix="FIXTHIS/PATH/phased_genotypes/biobank_tag.notrios.phased_all"
+annot_prefix=f"{WORK_DIR}/annotation.{TAG}.chrALL.txt"
+gene_vcf_prefix=f"{WORK_DIR}/vcf_files_temp/{TAG}"
 
 # import glob # TODO: remove this?
 
@@ -39,7 +39,7 @@ gene_vcf_prefix=f"{WORK_DIR}/rec_skat_prep/vcf_files_temp/{TAG}"
 def read_genes_list(chroms):
     tuples = []
     for C in chroms:
-        with open(f"{WORK_DIR}/rec_skat_prep/genes_to_process.brava_s50.nonsynonymous.chr{C}") as f:
+        with open(f"{WORK_DIR}/genes_to_process.brava_s50.nonsynonymous.chr{C}") as f:
             for line in f:
                 chrom, gene = line.strip().split()
                 tuples.append((chrom, gene))
@@ -48,9 +48,9 @@ gene_tuples = read_genes_list(range(1,23))
 
 rule run_all:
     input:
-        expand(WORK_DIR+"/rec_skat_prep/annotation.brava_s50.nonsynonymous.chrALL.txt"),
-        expand(WORK_DIR+"/rec_skat_prep/biallelic_genotypes.{tag}.chr{chrom}.txt", chrom=range(1,23), tag={TAG}),
-        expand(WORK_DIR+"/rec_skat_prep/genes_to_process.{tag}.chr{chrom}", chrom=range(1,23), tag={TAG}),
+        expand(WORK_DIR+"/annotation.brava_s50.nonsynonymous.chrALL.txt"),
+        expand(WORK_DIR+"/sandbox/biallelic_genotypes.{tag}.chr{chrom}.txt", chrom=range(1,23), tag={TAG}),
+        expand(WORK_DIR+"/genes_to_process.{tag}.chr{chrom}", chrom=range(1,23), tag={TAG}),
         # note, expand() generates the cartestian product of all variables, which is not what we need here, but this trick based on zip works fine
         expand("{prefix}.{chrom}.{gene}.vcf",
                zip,
@@ -59,7 +59,7 @@ rule run_all:
                prefix=[gene_vcf_prefix] * len(gene_tuples)),
         # expand("{prefix}.{chrom}.{gene}.vcf", chrom=f'chr{18}', gene =[x[1] for x in read_genes_list([18])], prefix=gene_vcf_prefix),
         expand("{prefix}.chr{chrom}.vcf", chrom=range(1,23), prefix=gene_vcf_prefix),
-        expand(WORK_DIR+"/rec_skat_prep/{tag}.chrALL.bcf", tag={TAG}),
+        expand(WORK_DIR+"/{tag}.chrALL.bcf", tag={TAG}),
 
 rule generate_biallelic_carriers:
     resources:
@@ -69,7 +69,7 @@ rule generate_biallelic_carriers:
         input_bcf = bcf_prefix+".chr{chrom}.bcf",
         annot   = annot_prefix #+".chr{chrom}.txt"
     output:
-        WORK_DIR+"/rec_skat_prep/biallelic_genotypes."+TAG+".chr{chrom}.txt"
+        WORK_DIR+"/sandbox/biallelic_genotypes."+TAG+".chr{chrom}.txt"
     params:
         max_AF = max_AF,
         wd = WORK_DIR,
@@ -85,7 +85,7 @@ checkpoint identify_good_genes:
     input:
         rules.generate_biallelic_carriers.output
     output:
-        WORK_DIR+"/rec_skat_prep/genes_to_process."+TAG+".chr{chrom}",
+        WORK_DIR+"/genes_to_process."+TAG+".chr{chrom}",
         # gene_files = glob.glob(WORK_DIR+"/sandbox/samples.{chrom}.*.biallelic")
     params:
         wd = WORK_DIR,
@@ -142,7 +142,7 @@ rule generate_annotation_regenie_like:
         mem_mb=1000,
         threads=1
     params:
-        annot_prefix = "/lustre/scratch123/hgi/mdt2/projects/gnh_industry/Genes_and_Health_2023_02_44k/brava_vep_annotation/vep105_loftee/out/gnh_39k.brava_s50_nopopmax",  
+        annot_prefix = "/FIXTHIS/PATH/to_saige_like_annotation.brava_s50_nopopmax",  
     output:
         annot = annot_prefix
     shell:
@@ -159,10 +159,10 @@ rule final_merging:
     input:
         expand(gene_vcf_prefix+".chr{chrom}.vcf", chrom=range(1,23)),
     output:
-        WORK_DIR+"/rec_skat_prep/"+TAG+".chrALL.bcf",
+        WORK_DIR+"/"+TAG+".chrALL.bcf",
     params:
         prefix = gene_vcf_prefix,
-        final_prefix = WORK_DIR+"/rec_skat_prep/"+TAG+".chrALL"
+        final_prefix = WORK_DIR+"/"+TAG+".chrALL"
     shell:
         """
         source /etc/profile.d/modules.sh
