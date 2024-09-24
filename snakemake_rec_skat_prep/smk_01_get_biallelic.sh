@@ -7,12 +7,12 @@ max_AF=$3
 WORK_DIR=$4
 TAG=$5
 output=$6
-# there's an additional parameter: min_PP=0.90 at line 37 (the awk in the pipe)
+# there's an additional parameter: min_PP=0.90 at line 22 (the awk in the pipe)
 
 tmp_dir="$WORK_DIR/sandbox"
 genotypes="$tmp_dir/alt_gen.$TAG.PP90af$max_AF.txt.gz"
 
-call_chets="/software/team281/gk18/call_chets/call_chets"
+call_chets="/FIX/THIS/call_chets"
 
 echo "Will create a file with biallelic carriers for $TAG."
 

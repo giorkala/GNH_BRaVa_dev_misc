@@ -3,7 +3,7 @@ Snakemake pipeline for preparing genotypes to enable Recessive SKAT analysis in 
 
 The pipeline consists of 4 small steps, the second one being the longest one:
     1) Use `call_chets` to generate a list of biallelic individuals, once per chromosome
-    2) given that list, assess which genes have enough carriers based on `min_AC`
+    2) given that list, identify which genes have enough carriers based on `min_AC`
     3) generate one VCF per gene with the prep genotypes for those genes
     4) merge all these VCFs into a single one, per chromosome, and do some retouching
     5) Finally, concatenate all these VCFs into an exome-wide one and generate a BGEN for Regenie; this needs to be done separately.
@@ -17,7 +17,7 @@ The pipeline consists of 4 small steps, the second one being the longest one:
 Check the `README.md` for more details.
 
 # for LSF:
-`snakemake --cluster "bsub -M 4G -R 'select[mem>4G] rusage[mem=4G]' -n2 -G FIXTHIS -q normal -o run_all.stdout -e logs/run_all.stderr.%J" --jobs 50 --latency-wait 10 -T 2 run_all`
+`snakemake --cluster "bsub -M 4G -R 'select[mem>4G] rusage[mem=4G]' -n2 -G FIXTHIS -q normal -o run_all.stdout -e logs/run_all.stderr.%J" --jobs 50 --latency-wait 10 run_all`
 
 GK - Jul 25, 2024
 """
@@ -33,13 +33,11 @@ bcf_prefix="FIXTHIS/PATH/phased_genotypes/biobank_tag.notrios.phased_all"
 annot_prefix=f"{WORK_DIR}/annotation.{TAG}.chrALL.txt"
 gene_vcf_prefix=f"{WORK_DIR}/vcf_files_temp/{TAG}"
 
-# import glob # TODO: remove this?
-
 # Function to read genes list from a file
 def read_genes_list(chroms):
     tuples = []
     for C in chroms:
-        with open(f"{WORK_DIR}/genes_to_process.brava_s50.nonsynonymous.chr{C}") as f:
+        with open(f"{WORK_DIR}/genes_to_process.{TAG}.chr{C}") as f:
             for line in f:
                 chrom, gene = line.strip().split()
                 tuples.append((chrom, gene))
@@ -52,7 +50,7 @@ rule run_all:
         expand(WORK_DIR+"/sandbox/biallelic_genotypes.{tag}.chr{chrom}.txt", chrom=range(1,23), tag={TAG}),
         expand(WORK_DIR+"/genes_to_process.{tag}.chr{chrom}", chrom=range(1,23), tag={TAG}),
         # note, expand() generates the cartestian product of all variables, which is not what we need here, but this trick based on zip works fine
-        expand("{prefix}.{chrom}.{gene}.vcf",
+        expand("{prefix}.{chrom}.{gene}.bcf",
                zip,
                chrom=[chrom for chrom, gene in gene_tuples],
                gene=[gene for chrom, gene in gene_tuples],
@@ -105,7 +103,7 @@ rule generate_gene_vcf:
         annot = annot_prefix,
         # good_genes = checkpoints.identify_good_genes.get(chrom={chrom}).gene_files
     output:
-        gene_vcf_prefix+".chr{chrom}.{gene}.vcf"
+        gene_vcf_prefix+".chr{chrom}.{gene}.bcf"
     params:
         gene = lambda wildcards: wildcards.gene,
         chrom = lambda wildcards: wildcards.chrom,
@@ -126,7 +124,7 @@ rule concatenate_chrom_vcf:
         # rules.generate_gene_vcf.output
         rules.identify_good_genes.output,
     output:
-        gene_vcf_prefix+".chr{chrom}.vcf"
+        gene_vcf_prefix+".chr{chrom}.vcf.gz"
     params:
         out_prefix = gene_vcf_prefix+".chr{chrom}",
         # tag = TAG

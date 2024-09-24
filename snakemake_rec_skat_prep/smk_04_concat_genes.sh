@@ -9,7 +9,7 @@
 CHR=$1
 genes_list=$2
 out_prefix=$3
-# this should be "$work_dir/rec_skat_prep/vcf_files_temp/$TAG.chr$CHR"
+# this should be "$work_dir/vcf_files_temp/$TAG.chr$CHR"
 out_final="$out_prefix.vcf"
 
 # temp files needed
@@ -30,10 +30,14 @@ echo "Genes available for chr$CHR: $(wc -l $files_to_concat | awk '{print $1}')"
 
 # now merge all gene-VCF files to one
 bcftools concat -f $files_to_concat -Ou | bcftools sort -m 2G -Ou | bcftools norm --rm-dup all -Ob -o $out_prefix.bcf
-# we'll make a new file with a simplified header
-bcftools view -h $out_prefix.bcf | head -25 > $out_final
-bcftools view -h $out_prefix.bcf | tail -n17 >> $out_final
+# make a new file (NOTE: might wanna simplify the header)
+bcftools view -h $out_prefix.bcf > $out_final
+# bcftools view -h $out_prefix.bcf | tail -n17 >> $out_final
 # then drop the PP and turn any phased genotype to unphased
 bcftools annotate -x FORMAT/PP $out_prefix.bcf -Ou | bcftools view -H | sed 's/|/\//g' >> $out_final
+
+echo "Compression and indexing..."
+bgzip -c $out_final
+bcftools index $out_final.gz
 
 rm $out_prefix.bcf

@@ -43,10 +43,12 @@ if args.list_carriers is not None:
         samples_other = list( set(samples_all).difference(samples_biallelic) )
 
         with open(f"{args.list_carriers}/samples.{gene}.biallelic", 'w') as f:
+        # with open(f"{args.list_carriers}/samples.{genes_all.loc[gene].chr}.{gene}.biallelic", 'w') as f:
             for carrier in samples_biallelic:
                 f.write(f"{carrier}\n")
 
         with open(f"{args.list_carriers}/samples.{gene}.other", 'w') as f:
+        # with open(f"{args.list_carriers}/samples.{genes_all.loc[gene].chr}.{gene}.other", 'w') as f:
             for carrier in samples_other:
                 f.write(f"{carrier}\n")
 
