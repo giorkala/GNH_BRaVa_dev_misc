@@ -16,23 +16,32 @@ import argparse
 
 parser = argparse.ArgumentParser(description="Convert the gene annotation file to a variant-gene index, based on a specific consequence.")
 parser.add_argument("--anno", "-a", help="file with gene annotation (as in BRaVa/SAIGE)", required=True, type=str)
-parser.add_argument("--consq", "-c", nargs='+', help="class of consequence to process (list if many)", required=True, type=str)
+parser.add_argument("--consq", "-c", nargs='+', help="class of consequence to process (list if many)", required=True, type=str, default=None)
+parser.add_argument("--scores", "-s", nargs='+', help="scores to assign to each class (list if many)", required=False, type=str)
 parser.add_argument("--out", "-o", help="filename for the output", required=True, type=str)
 args = parser.parse_args()
 
 print("Will process the set of", args.consq)
+if args.scores is not None:
+    assert len(args.scores) == len(args.consq), "Mismatch in sizes between classes and scores!"
+    assign_score = {}
+    print("Will assign the following scores to variants:")
+    for i,consq in enumerate(args.consq):
+        assign_score[consq] = float(args.scores[i])
+    print(assign_score)
+
 gene_data_all = {} # this dict will contain one DF per gene, for all genes in the analysis
-r=0
+# r=0
 with open( args.anno, 'r') as fin:
     for line in fin:
         tokens = line.split()
-        if r%2==0 :
+        if tokens[1] == 'var' :
             gene_set_vars = tokens[2:]
         else:
             gene_set_anns = tokens[2:]
             gene_data_all[ tokens[0] ] = pd.DataFrame( {"SNPID":gene_set_vars, "Class": gene_set_anns } ) #.set_index('SNPID')
 
-        r += 1
+        # r += 1
 
 print( f"Variant annotation loaded for {len(gene_data_all)} genes." )
 
@@ -45,7 +54,10 @@ with open(args.out, 'w') as fout:
         if len(tmp_df)>0:
             # print one line per variant
             for x in tmp_df.iterrows():
-                fout.write( f'{x[1].SNPID} {gene}\n')
+                if args.scores is None:
+                    fout.write( f'{x[1].SNPID} {gene} {x[1].Class}\n')
+                else:
+                    fout.write( f'{x[1].SNPID} {gene} {assign_score[x[1].Class]}\n')
             snps_processed += len(tmp_df)
             gens_processed += 1
         else:
